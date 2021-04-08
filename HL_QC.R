@@ -19,7 +19,6 @@ options(ggrepel.max.overlaps = Inf)
 library(msigdbr)
 library(magrittr)
 library(GSVA)
-library(scCATCH)
 
 
 ## load 10x datasets
