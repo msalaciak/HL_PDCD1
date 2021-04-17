@@ -19,7 +19,12 @@ options(ggrepel.max.overlaps = Inf)
 library(msigdbr)
 library(magrittr)
 library(GSVA)
-
+library(pheatmap)
+library(cerebroApp)
+library(GSEABase)
+library(gtable)
+library(gt)
+library(SeuratDisk)
 
 ## load 10x datasets
 #load datasets of each time point
@@ -1157,3 +1162,17 @@ names(new.idents.subset) <- levels(tcell.subset.int)
 tcell.subset.int <- RenameIdents(tcell.subset.int, new.idents.subset)
 tcell.subset.int[["new.ident"]] <-Idents(object = tcell.subset.int)
 DimPlot(tcell.subset.int, reduction = "umap", label = TRUE,label.size = 3,repel=TRUE) + NoLegend()
+
+
+tcell.subset.int <- NormalizeData(tcell.subset.int)
+all.genes <- rownames(tcell.subset.int)
+tcell.subset.int <- ScaleData(tcell.subset.int, features = all.genes)
+
+# saveRDS(tcell.subset.int, file = "tcell.rds")
+
+test <- RunUMAP(tcell.subset.int, 
+                            dims = 1:14,
+                            reduction = "pca",n.neighbors=30L,min.dist = 0.3,spread=1,metric = 'manhattan',slot=tcell.subset.int@assays$SCT@scale.data
+)
+
+DimPlot(test,label=T,repel=T) + NoLegend()
