@@ -25,6 +25,11 @@ library(GSEABase)
 library(gtable)
 library(gt)
 library(SeuratDisk)
+library(org.Hs.eg.db)
+library(AnnotationDbi)
+library(scran)
+library(ggpubr)
+
 
 ## load 10x datasets
 #load datasets of each time point
@@ -1176,3 +1181,109 @@ test <- RunUMAP(tcell.subset.int,
 )
 
 DimPlot(test,label=T,repel=T) + NoLegend()
+
+
+
+
+
+library(scProportionTest)
+prop_test <- sc_utils(tcell.subset.int)
+
+prop_test <- permutation_test(
+  prop_test, cluster_identity = "new.ident",
+  sample_1 = "1", sample_2 = "4",
+  sample_identity = "Timepoint"
+)
+
+permutation_plot(prop_test)
+
+
+
+
+### monocytes
+## subset
+
+
+
+mono.subset <- subset(pbmc.int, idents = c('CD14 Monocyte-1','CD14 Monocyte-2',
+                                           'CD14 Monocyte-3',
+                                           'CD14 Monocyte-4','CD16 Monocyte','CD14 Monocyte-5',
+                                           'CD14 Monocyte-6',
+                                           'CD14 Monocyte-7'))
+mono.subset <- DietSeurat(mono.subset, assays = "RNA")
+
+#redo integration
+#integrate data
+Seurat_object.list <- SplitObject(mono.subset, split.by = "Timepoint") %>%
+  lapply(SCTransform, verbose = T, vars.to.regress = c("nFeature_RNA","nCount_RNA", "percent_mito","percent_ribo","S.Score", "G2M.Score"))
+
+Seurat_object.features <- SelectIntegrationFeatures(object.list = Seurat_object.list,
+                                                    nfeatures = 3000)
+
+# some data wrangling
+Seurat_object.list <- PrepSCTIntegration(object.list = Seurat_object.list,
+                                         anchor.features = Seurat_object.features)
+
+# identify anchors shared by the datasets
+Seurat_object.anchors <- FindIntegrationAnchors(object.list = Seurat_object.list,
+                                                normalization.method = "SCT", 
+                                                anchor.features = Seurat_object.features)
+
+# proceed with integration
+mono.subset.int <- IntegrateData(anchorset = Seurat_object.anchors,
+                                  normalization.method = "SCT")
+
+#clean up
+rm(Seurat_object.list)
+rm(Seurat_object.features)
+rm(Seurat_object.anchors)
+rm(mono.subset)
+
+# remove tcr genes for variable features
+#variable genes
+var.genes.mono <-VariableFeatures(mono.subset.int)
+
+#TCR
+tra.remove <- var.genes.mono[grep("^TRA[VDJC]", var.genes.mono)]
+trb.remove <- var.genes.mono[grep("^TRB[VDJC]", var.genes.mono)]
+trd.remove <- var.genes.mono[grep("^TRD[VDJC]", var.genes.mono)]
+trg.remove <- var.genes.mono[grep("^TRG[VDJC]", var.genes.mono)]
+
+# IG
+ig.remove <- var.genes.mono[grep("^IG[HKL]", var.genes.mono)]
+
+combined.genes.remove <- c(tra.remove,trb.remove,trd.remove,trg.remove,ig.remove)
+
+#remove from variable genes so we dont cluster on ig/tcr
+VariableFeatures(mono.subset.int) <- setdiff(var.genes.mono, combined.genes.remove)
+
+
+
+DefaultAssay(mono.subset.int) <- "integrated"
+#PCA
+
+mono.subset.int <- RunPCA(object = mono.subset.int)
+
+mono.subset.int <- RunUMAP(mono.subset.int,  dims = 1:20, reduction = "pca")
+
+DimPlot(mono.subset.int)
+
+mono.subset.int <- FindNeighbors(mono.subset.int, reduction = "pca", dims = 1:20)
+mono.subset.int <- FindClusters(mono.subset.int, resolution = 0.6)
+
+
+DimPlot(mono.subset.int,
+        reduction = "umap",
+        label = TRUE)
+
+  DefaultAssay(mono.subset.int) <- "RNA"
+mono.subset.int.markers <- FindAllMarkers(mono.subset.int, only.pos = TRUE,
+                                        min.pct = 0.10, logfc.threshold = 0.25)
+
+top10.mono.rna <- mono.subset.int.markers %>% 
+  group_by(cluster) %>% 
+  slice_max(avg_log2FC, n = 10)
+
+
+
+

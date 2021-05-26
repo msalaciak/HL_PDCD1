@@ -74,7 +74,7 @@ TCR_1068 <- filter(tcell.subset.int@meta.data, clonotype == "1068_TCR")$tcell_ba
 TCR_506 <- filter(tcell.subset.int@meta.data, clonotype == "506_TCR")$tcell_barcode
 TCR_423 <- filter(tcell.subset.int@meta.data, clonotype == "423_TCR")$tcell_barcode
 
-DimPlot(tcell.subset.int, repel=T,cells.highlight= list(TCR_6,TCR_3,TCR_139,TCR_46,TCR_17,TCR_86,TCR_48,TCR_77,TCR_19,
+DimPlot(tcr.subset.int,label=F, repel=T,cells.highlight= list(TCR_6,TCR_3,TCR_139,TCR_46,TCR_17,TCR_86,TCR_48,TCR_77,TCR_19,
                                                                                   TCR_589,TCR_99,TCR_199,TCR_187,TCR_593,TCR_4021,TCR_2663,TCR_4087,
                                                                                   TCR_506),split.by="Timepoint")  + 
   scale_color_manual(labels = c("unselected","TCR_19","TCR_77","TCR_48","TCR_86","TCR_17","TCR_46","TCR_139","TCR_3","TCR_506","TCR_4087","TCR_2663","TCR_4021","TCR_593","TCR_187","TCR_199","TCR_99","TCR_589","TCR_6"), 
@@ -96,7 +96,7 @@ TCR_7613 <- filter(tcell.subset.int@meta.data, clonotype == "7613_TCR")$tcell_ba
 
 
 
- DimPlot(tcell.subset.int,label=F,cells.highlight=list(TCR_7613,TCR_8149,TCR_1104,TCR_8870,TCR_3909,TCR_1068,TCR_4087,TCR_7747),
+ DimPlot(tcr.subset.int,label=F,cells.highlight=list(TCR_7613,TCR_8149,TCR_1104,TCR_8870,TCR_3909,TCR_1068,TCR_4087,TCR_7747),
          split.by="Timepoint",sizes.highlight=1.2) +
 scale_color_manual(labels = c("unselected","TCR_7747","TCR_4087","TCR_1068","TCR_3909","TCR_8870","TCR_1104","TCR_8149","TCR_7613"),
                    values = c("lightgrey", "blue","chartreuse3","brown4","black","deeppink2","blueviolet","red","orange","darkgoldenrod3","darkseagreen","deepskyblue","cyan","coral","cadetblue4","burlywood","chartreuse1","darkslateblue")) +
@@ -164,3 +164,154 @@ scale_color_manual(labels = c("unselected","TCR_7747","TCR_4087","TCR_1068","TCR
  ) + theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = .5))
  
  DoHeatmap(subset(tcell.subset.int, downsample = 1000),  features= unique(tp1v4.top10$gene), size = 3)
+
+ 
+ DimPlot(tcell.subset.int,split.by="Timepoint",label=F) + NoLegend()
+ 
+ ## TCR DIVERSITY 
+ clonotypes.div <- filter(tcrInfo, has_ir=="True")
+ clonotypes.div <-select(clonotypes.div,clonotype, new.ident, Timepoint )
+ 
+ tp1.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==1))
+ tp2.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==2))
+ tp3.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==3))
+ tp4.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==4))
+ tp5.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==5))
+ tp6.clonotype.count <- nrow(filter(clonotypes.div, Timepoint==6))
+ 
+ 
+## cluster tcr only
+ tcr.cells<-filter(tcrInfo, has_ir=="True")
+ tcr.subset <-subset(tcell.subset.int, cells=tcr.cells$X)
+ tcr.subset <-subset(tcr.subset, idents = c("Unknown Cell", "NKT"), invert = TRUE)
+
+ tcr.subset <- DietSeurat(tcr.subset, assays = "RNA")
+ 
+ #redo integration
+ #integrate data
+ Seurat_object.list <- SplitObject(tcr.subset, split.by = "Timepoint") %>%
+    lapply(SCTransform, verbose = T, vars.to.regress = c("nFeature_RNA","nCount_RNA", "percent_mito","percent_ribo","S.Score", "G2M.Score"))
+ 
+ Seurat_object.features <- SelectIntegrationFeatures(object.list = Seurat_object.list,
+                                                     nfeatures = 4000)
+ 
+ # some data wrangling
+ Seurat_object.list <- PrepSCTIntegration(object.list = Seurat_object.list,
+                                          anchor.features = Seurat_object.features)
+ 
+ # identify anchors shared by the datasets
+ Seurat_object.anchors <- FindIntegrationAnchors(object.list = Seurat_object.list,
+                                                 normalization.method = "SCT", 
+                                                 anchor.features = Seurat_object.features)
+ 
+ # proceed with integration
+ tcr.subset.int <- IntegrateData(anchorset = Seurat_object.anchors,
+                                   normalization.method = "SCT")
+ 
+ #clean up
+ rm(Seurat_object.list)
+ rm(Seurat_object.features)
+ rm(Seurat_object.anchors)
+ rm(tcr.subset)
+ 
+ # remove tcr genes for variable features
+ #variable genes
+ var.genes.cd8subset <-VariableFeatures(tcr.subset.int)
+ 
+ #TCR
+ tra.remove <- var.genes.cd8subset[grep("^TRA[VDJC]", var.genes.cd8subset)]
+ trb.remove <- var.genes.cd8subset[grep("^TRB[VDJC]", var.genes.cd8subset)]
+ trd.remove <- var.genes.cd8subset[grep("^TRD[VDJC]", var.genes.cd8subset)]
+ trg.remove <- var.genes.cd8subset[grep("^TRG[VDJC]", var.genes.cd8subset)]
+ 
+ # IG
+ ig.remove <- var.genes.cd8subset[grep("^IG[HKL]", var.genes.cd8subset)]
+ 
+ combined.genes.remove <- c(tra.remove,trb.remove,trd.remove,trg.remove,ig.remove)
+ 
+ #remove from variable genes so we dont cluster on ig/tcr
+ VariableFeatures(tcr.subset.int) <- setdiff(var.genes.cd8subset, combined.genes.remove)
+ 
+ 
+ 
+ DefaultAssay(tcr.subset.int) <- "integrated"
+ #PCA
+ 
+ tcr.subset.int <- RunPCA(object = tcr.subset.int)
+ 
+ ElbowPlot(tcr.subset.int,ndims=40)
+
+ tcr.subset.int <- RunUMAP(tcr.subset.int, 
+                             dims = 1:20,
+                             reduction = "pca")
+ 
+ DimPlot(tcr.subset.int,group.by="new.ident",label=T,repel=T)  
+ 
+ tcr.subset.int <- FindNeighbors(object = tcr.subset.int, 
+                                   dims = 1:20)
+ 
+ 
+ tcr.subset.int <- FindClusters(object = tcr.subset.int,
+                                  resolution = 0.8,algorithm = 4)
+ 
+ DimPlot(tcr.subset.int,label=T,repel=T)
+ tcr.subset.int$celltype.cond <- paste(Idents(tcr.subset.int), tcr.subset.int$Timepoint, sep = "_tp_")
+ 
+ DefaultAssay(tcr.subset.int) <- "SCT"
+ 
+
+ 
+ 
+ DefaultAssay(tcr.subset.int) <- "RNA"
+ 
+ #MODULE SCORE
+
+ tcr.subset.int <- AddModuleScore(object = tcr.subset.int, features = OXIDATIVE_PHOSPHORYLATION, name = "OXIDATIVE_PHOSPHORYLATION",ctrl=20)
+ tcr.subset.int <- AddModuleScore(object = tcr.subset.int, features = GLYCOLYSIS, name = "GLYCOLYSIS",ctrl=20)
+ tcr.subset.int <- AddModuleScore(object = tcr.subset.int, features = MTOR, name = "MTOR",ctrl=20)
+ tcr.subset.int <- AddModuleScore(object = tcr.subset.int, features = PI3K_AKT_MTOR, name = "PI3K_AKT_MTOR",ctrl=20)
+ tcr.subset.int <- AddModuleScore(object = tcr.subset.int, features = FATTY_ACID_MET, name = "FATTY_ACID_METABOLISM",ctrl=20)
+ 
+
+
+ tcr.subset.markers<- FindAllMarkers(tcr.subset.int, only.pos = TRUE,
+                                                   min.pct = 0.1, logfc.threshold = 0.15)
+ 
+ tcr.subset.markers.top15  <- tcr.subset.markers %>% 
+    group_by(cluster) %>% 
+    slice_max(avg_log2FC, n = 15) %>%
+    ungroup()
+ 
+ tcr.subset.int <- NormalizeData(tcr.subset.int)
+ tcr.subset.int <- ScaleData(tcr.subset.int, features = rownames(tcr.subset.int))
+ Idents(tcr.subset.int) <-"seurat_clusters"
+ Idents(tcr.subset.int) <-"celltype.cond"
+ Idents(object = tcr.subset.int) <- "new.ident"
+ 
+tcr.subset.cluster5.tp1 <-FindMarkers(subset(tcr.subset.int,subset=Timepoint==1), ident.1="5",only.pos = FALSE,
+                           min.pct = 0.1, logfc.threshold = 0.10)
+
+tcr.subset.cluster5.tp1$gene <-rownames(tcr.subset.cluster5.tp1)
+
+
+EnhancedVolcano(tcr.subset.cluster5.tp4v1,
+                lab = rownames(tcr.subset.cluster5.tp4v1),
+                x = 'avg_log2FC',
+                y = 'p_val_adj',
+                pCutoff = 0.05,
+                FCcutoff = 0.75,
+                title = 'CD8 TEM-2 Timepoint 4 vs all clusters',
+                drawConnectors = TRUE,
+                widthConnectors = 0.75)
+
+
+
+
+#### TCR DIVERISTY
+tcr.diversity
+tcr.div.count <- tcr.diversity %>%                              # Applying group_by & summarise
+   group_by(ID,Timepoint) %>%
+   summarise(count = n_distinct(clonotype))
+
+tcr.div.clonotype <- tcr.diversity  %>% group_by(ID, Timepoint,clonotype)
+tcr.div.clonotype <- tcr.div.clonotype %>% tally()
