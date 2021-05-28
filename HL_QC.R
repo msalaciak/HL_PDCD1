@@ -31,6 +31,7 @@ library(scran)
 library(ggpubr)
 
 
+
 ## load 10x datasets
 #load datasets of each time point
 timepoint_1.data <- Read10X(data.dir ="/home/matthew/datatransfer/mercier/151231/outs/filtered_gene_bc_matrices/GRCh38")
@@ -668,10 +669,10 @@ FeaturePlot(pbmc.int,
 #CD8+ T-cells
 FeaturePlot(pbmc.int, 
             reduction = "umap", 
-            features = c("CD3D", "CD8A"), 
+            features = c("CD8A"), 
             order = TRUE,
             min.cutoff = 'q10', 
-            label = TRUE)
+            label = F)
 
 #cDC
 FeaturePlot(pbmc.int, 
@@ -728,6 +729,16 @@ FeaturePlot(pbmc.int,
             order = TRUE,
             min.cutoff = 'q10', 
             label = TRUE)
+
+
+p<-FeaturePlot(pbmc.int, 
+            reduction = "umap", 
+            features = c("CD4","CD8A","FCGR3A","CD14","NCAM1","FCER1A","SERPINF1","CD19"), 
+            order = TRUE,
+            min.cutoff = 'q10',
+            max.cutoff = 'q99',
+            pt.size = 0.5,
+            label = F,combine=F) 
 
 
 FeaturePlot(pbmc.int, 

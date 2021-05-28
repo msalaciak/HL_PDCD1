@@ -275,23 +275,30 @@ scale_color_manual(labels = c("unselected","TCR_7747","TCR_4087","TCR_1068","TCR
 
 
  tcr.subset.markers<- FindAllMarkers(tcr.subset.int, only.pos = TRUE,
-                                                   min.pct = 0.1, logfc.threshold = 0.15)
+                                                   min.pct = 0.1, logfc.threshold = 0.15,features=all.genes.nobcr)
  
  tcr.subset.markers.top15  <- tcr.subset.markers %>% 
     group_by(cluster) %>% 
-    slice_max(avg_log2FC, n = 15) %>%
+    slice_max(avg_log2FC, n = 10) %>%
     ungroup()
  
  tcr.subset.int <- NormalizeData(tcr.subset.int)
  tcr.subset.int <- ScaleData(tcr.subset.int, features = rownames(tcr.subset.int))
  Idents(tcr.subset.int) <-"seurat_clusters"
  Idents(tcr.subset.int) <-"celltype.cond"
- Idents(object = tcr.subset.int) <- "new.ident"
+ Idents(object = tcr.subset.int) <- "new.ident.tcr"
  
-tcr.subset.cluster5.tp1 <-FindMarkers(subset(tcr.subset.int,subset=Timepoint==1), ident.1="5",only.pos = FALSE,
+ new.idents.subset <- c('CD4 TH2', "CD4 NAIVE","CD8 TEFF-3 ","CD8 TEFF-2","CD8 TEM-2","CD8 TEFF-1","CD4 TREG","CD4 TH17","CD8 TEFF-2","CD8 TEM-3","CD8 TEX-1")
+ 
+ names(new.idents.subset) <- levels(tcr.subset.int)
+ tcr.subset.int <- RenameIdents(tcr.subset.int, new.idents.subset)
+ tcr.subset.int[["new.ident.tcr"]] <-Idents(object = tcr.subset.int)
+ 
+ 
+tcr.subset.cluster1 <-FindMarkers(tcr.subset.int, ident.1="1",only.pos = FALSE,
                            min.pct = 0.1, logfc.threshold = 0.10)
 
-tcr.subset.cluster5.tp1$gene <-rownames(tcr.subset.cluster5.tp1)
+tcr.subset.cluster1$gene <-rownames(tcr.subset.cluster1)
 
 
 EnhancedVolcano(tcr.subset.cluster5.tp4v1,

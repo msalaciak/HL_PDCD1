@@ -42,7 +42,7 @@ VlnPlot(subset(tcell.subset.int,idents=c("CD8 TEM-2_3","CD8 TEM-2_4")), features
 VlnPlot(subset(tcell.subset.int,idents=c("CD8 TEM-2_1","CD8 TEM-2_4","CD8 TEFF-1_1","CD8 TEFF-1_4")), features = c("CD28","CD27","GZMB","GNLY",
                                                                                                                    "CD69","GZMA","IFNG","PRF1")) + RotatedAxis()
 
-p<-FeaturePlot(tcell.subset.int,features=c("IL7R","CCR7","FOXP3","GZMA","GZMB","PRF1","GNLY","KLRB1","GATA3"),order=T,min.cutoff = 'q10',max.cutoff = 'q99',pt.size = 0.5,combine=F)
+p<-FeaturePlot(tcell.subset.int,features=c("IL7R","CCR7","FOXP3","GZMA","GZMB","PRF1","GNLY","KLRB1","GATA3","SELL","PDCD1","CTLA4"),order=T,min.cutoff = 'q10',max.cutoff = 'q99',pt.size = 0.5,combine=F)
 
 
 for(i in 1:length(p)) {
@@ -79,14 +79,14 @@ tcell.subset.int <- AddModuleScore(object = tcell.subset.int, features = FATTY_A
 plot_density(subset(tcell.subset.int,Timepoint==1), features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1","FATTY_ACID_METABOLISM1"))
 
 
-p.1<-plot_density(subset(tcr.subset.int,Timepoint==4),features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1"))
+p<-plot_density(subset(tcell.subset.int,ident=c(1,2,3)),features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1"))
 p1<-plot_density(subset(tcell.subset.int,Timepoint==4),features=c("GZMA","GZMH","GZMB","GZMK","PRF1","GNLY","KLRG1","KLRF1","KLRC1","KLRD1","IFNG",'MKI67'))
 p2<-plot_density(subset(tcell.subset.int,Timepoint==4),features=c("IL7R","SELL","CCR7","CD28","CD27","CD44"))
 p3<-plot_density(subset(tcell.subset.int,Timepoint==4),features=c("CD69","FOS","JUN","LAMP1","HLA-DRA","ICOS")) 
 p4<-plot_density(subset(tcell.subset.int,Timepoint==4),features=c("PDCD1","EOMES","TOX","CD244","LAG3","CTLA4",'HAVCR2','TBX21','TCF7')) 
 
-p.1 + plot_annotation(
-  title = 'Timepoint 4')
+p + plot_annotation(
+  title = 'Timepoint 1,2,3')
 p1 + plot_annotation(
   title = 'Timepoint 4')
 p2 + plot_annotation(
@@ -463,25 +463,26 @@ VlnPlot(subset(tcr.subset.int,idents=c("11_tp_1","11_tp_4","6_tp_1","6_tp_4")),f
 #plot fucntion maybe?
 
 data.plot <- FetchData(tcr.subset.int,
-                  vars = c('GZMK','PRF1','GZMB','IFNG'),
-                  cells = subset(tcr.subset.int,idents="5_tp_4")$tcell_barcode)
+                  vars = c('PDCD1','GZMB'),
+                  cells = tcr.subset.int$tcell_barcode)
 
-
+data.plot<-cd8tem2.avg[,c(1,4)]
 data.plot <- melt(data.plot)
 
+data.plot <- filter(data.plot, gene==c("PDCD1","GZMB"))
 
 ggplot(data.plot,
-       aes(x = variable, y = value)) +
+       aes(x = gene, y = value)) +
   geom_violin() +
   geom_jitter(size = 0.1) +  
-  stat_compare_means(comparisons = list(c("GZMK","PRF1","GZMB","IFNG")),label = "p.format", method = "t.test")
+  stat_compare_means(comparisons = list(c("PDCD1","GZMB")),label = "p.format", method = "t.test")
 
 
 
 
-ggplot(data.plot, aes(x=FATTY_ACID_METABOLISM1, y=GLYCOLYSIS1)) + geom_point()
+ggplot(data.plot, aes(x=PDCD1, y=GZMB)) + geom_point()
 
-cor(data.plot$FATTY_ACID_METABOLISM1, data.plot$GLYCOLYSIS1)
+cor(data.plot)
 
 VlnPlot(subset(tcr.subset.int,idents=c("5_tp_1","5_tp_2","5_tp_3","5_tp_4","5_tp_5",
                                        "5_tp_6")), 
@@ -492,3 +493,6 @@ VlnPlot(subset(tcell.subset.int,idents=c("CD8 TEM-2_1","CD8 TEM-2_2","CD8 TEM-2_
                                        "CD8 TEM-2_6")), 
         features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1"),ncol=2)
 
+VlnPlot(subset(tcr.subset.int,idents=c("5_tp_1","5_tp_6")), 
+        features=c("MTOR1"),y.max = .15) + 
+  stat_compare_means(comparisons = list(c("5_tp_1","5_tp_6")),label = "p.format", method = "t.test")

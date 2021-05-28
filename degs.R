@@ -105,7 +105,7 @@ cdtex2.conserved$genes <-rownames(cdtex2.conserved)
 
 
 
-all.genes<-rownames(pbmc.int)
+all.genes<-rownames(tcr.subset.int)
 #TCR
 tra.remove <- all.genes[grep("^TRA[VDJC]", all.genes)]
 trb.remove <- all.genes[grep("^TRB[VDJC]", all.genes)]
@@ -201,22 +201,26 @@ table(Idents(pdcd1.subset))
 table(Idents(pdcd1.subset), pdcd1.subset$Timepoint)
 
 
-sub<-subset(tcr.subset.int,idents=c(3))
-Idents(sub) <- "Timepoint"
+sub<-subset(tcr.subset.int,idents=c(3,10,6,5,4,9,11))
+Idents(tcr.subset.int) <- "Disease_status"
 
-cd8tem2.avg <- AverageExpression(sub, return.seurat = TRUE)
+cd8tem2.avg <- AverageExpression(tcr.subset.int, return.seurat = TRUE)
 
-cd8teff3.tcr.heat<-DoHeatmap(cd8tem2.avg, features=c("GZMA","GZMH","GZMB","GZMK","PRF1","GNLY","KLRG1",
+cd8tem2.avg <- log1p(AverageExpression(tcr.subset.int)$RNA)
+cd8tem2.avg<-as.data.frame(cd8tem2.avg)
+cd8tem2.avg$gene <- rownames(cd8tem2.avg)
+
+
+# cd8tem2.avg<-cd8tem2.avg[rowSums(cd8tem2.avg==0)<ncol(cd8tem2.avg), ]
+
+
+DoHeatmap(cd8tem2.avg, features=c("GZMA","GZMH","GZMB","GZMK","PRF1","GNLY","KLRG1",
                                   "KLRD1","IFNG","IL7R","SELL","CD27","CD28","CD69","FOS","JUN",
-                                  "PDCD1","EOMES","TIGIT","CD244","LAG3","CTLA4",'HAVCR2','TBX21'
+                                  "PDCD1","EOMES","TIGIT","CD244","LAG3","CTLA4",'HAVCR2','TBX21',"CD40LG","ITGAL","CD2","IL2RA"
 ), size = 6, 
-          draw.lines = F) + scale_fill_viridis_c() +ggtitle("CD8 TEFF-3")
+          draw.lines = F) + scale_fill_viridis_c() +ggtitle("CD4 TH2 TCR SUBSET")
 
-cd8tem2.heat <- cd8tem2.heat+ ggtitle("CD8 TEM-2")
-cd8teff1.heat <- cd8teff1.heat+ ggtitle("CD8 TEFF-1")
 
-cd8tem2.tcr.heat <- cd8tem2.tcr.heat+ ggtitle("CD8 TEM-2 TCR SUBSET")
-cd8teff1.tcr.heat <- cd8teff1.tcr.heat+ ggtitle("CD8 TEFF-1 TCR SUBSET")
 
 
 cd8tem2.heat  +
@@ -230,4 +234,11 @@ cd8teff1.tcr.heat
 
 cd8tex1.heat + cd8tex2.heat
 
-cd8tex1.tcr.heat + cd8teff3.tcr.heat
+cd8tex1.tcr.heat + cd8teff2.tcr.heat + cd8teff3.tcr.heat
+
+
+
+DoHeatmap(cd8tem2.avg, features=tcr.subset.markers.top15$gene, size = 6, 
+draw.lines = F) + scale_fill_viridis_c()
+
+
