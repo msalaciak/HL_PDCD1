@@ -1,7 +1,7 @@
 #get db ready for gsva
 
 
-m_t2g <- msigdbr(species = "Homo sapiens", category = "C5") %>% 
+m_t2g <- msigdbr(species = "Homo sapiens", category = "H") %>% 
   dplyr::select(gs_name, gene_symbol)
 head(m_t2g)
 
@@ -15,6 +15,34 @@ RunscGSVA <- function(object = object, assay = "RNA", slot = "data", geneset = g
   return(object)
 }
 
+tcell.subset.int
+
+gsva_results <- gsva(
+  cd8tex2avg,
+  msigdbr_list,
+  method = "gsva",
+  # Appropriate for our vst transformed data
+  kcdf = "Gaussian",
+  # Minimum gene set size
+  min.sz = 15,
+  # Maximum gene set size
+  max.sz = 500,
+  # Compute Gaussian-distributed scores
+  mx.diff = TRUE,
+  # Don't print out the progress bar
+  verbose = TRUE
+)
+head(gsva_results[, 1:6])
+
+gsva_df <-gsva_results %>%
+  as.data.frame() %>%
+  tibble::rownames_to_column("pathway")
+
+pheatmap(gsva_results,
+                                      annotation_col = c(1,2,3,4,5,6), # Add metadata labels!
+                                      show_colnames = FALSE, # Don't show sample labels
+                                      fontsize_row = 6 # Shrink the pathway labels a tad
+)
 
 GetAssayData(object = subset(tcell.subset.int,subset=Timepoint==1), assay = 'RNA', slot = 'data')
 gsva_tcell_full<-RunscGSVA(object=tcell.subset.int,assay = 'SCT',slot='data', geneset=msigdbr_list)
@@ -132,3 +160,26 @@ gse.down <- enrichGO(gene          = gene.test.down$ENTREZID,
                      qvalueCutoff  = 0.05,
 )
 dotplot(gse.down, showCategory =30)  + ggtitle("CD 8 TEM-1 Timepoint 1 vs Timpoint 4 GO DOWN")
+
+
+##### escape
+GS.hallmark <- getGeneSets(library = "C2")
+
+ES.seurat <- enrichIt(obj = sub, gene.sets = GS.hallmark, groups = 1000, cores = 2)
+
+tcr.subset.int_test <- Seurat::AddMetaData(sub, ES.seurat)
+
+
+multi_dittoPlot(tcr.subset.int_test, vars = c("REACTOME_GLYCOLYSIS",
+                                              "PID_PI3KCI_AKT_PATHWAY",
+                                              "PID_CD8_TCR_PATHWAY"), 
+                group.by = "Timepoint", plots = c("jitter", "vlnplot", "boxplot"), 
+                ylab = "Enrichment Scores", 
+                theme = theme_classic() + theme(plot.title = element_text(size = 10)))
+
+ES2 <- data.frame(tcr.subset.int_test[[]], Idents(tcr.subset.int_test))
+colnames(ES2)[ncol(ES2)] <- "cluster"
+
+test<-getSignificance(ES2, group = "cluster", fit = "ANOVA")
+
+filter(test,FDR<=0.05)

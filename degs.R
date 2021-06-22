@@ -70,8 +70,8 @@ cdtem2.t4.t1$gene <- rownames(cdtem2.t4.t1)
 
 
 
-sub<-subset(tcell.subset.int,new.ident=="CD8 TEM-2")
-Idents(sub) <- "Timepoint"
+sub<-subset(tcell.subset.int,subset=Timepoint==4)
+Idents(sub) <- "new.ident"
  
 
 cd8tex2avg <- log1p(AverageExpression(sub)$RNA)
@@ -201,12 +201,12 @@ table(Idents(pdcd1.subset))
 table(Idents(pdcd1.subset), pdcd1.subset$Timepoint)
 
 
-sub<-subset(tcr.subset.int,idents=c(3,10,6,5,4,9,11))
-Idents(tcr.subset.int) <- "Disease_status"
+sub<-subset(tcr.subset.int,idents=c("CD8 TEM-2"))
+Idents(sub) <- "celltype.cond"
 
-cd8tem2.avg <- AverageExpression(tcr.subset.int, return.seurat = TRUE)
+cd8tem2.avg <- AverageExpression(sub, return.seurat = TRUE)
 
-cd8tem2.avg <- log1p(AverageExpression(tcr.subset.int)$RNA)
+cd8tem2.avg <- log1p(AverageExpression(sub)$RNA)
 cd8tem2.avg<-as.data.frame(cd8tem2.avg)
 cd8tem2.avg$gene <- rownames(cd8tem2.avg)
 
@@ -218,7 +218,7 @@ DoHeatmap(cd8tem2.avg, features=c("GZMA","GZMH","GZMB","GZMK","PRF1","GNLY","KLR
                                   "KLRD1","IFNG","IL7R","SELL","CD27","CD28","CD69","FOS","JUN",
                                   "PDCD1","EOMES","TIGIT","CD244","LAG3","CTLA4",'HAVCR2','TBX21',"CD40LG","ITGAL","CD2","IL2RA"
 ), size = 6, 
-          draw.lines = F) + scale_fill_viridis_c() +ggtitle("CD4 TH2 TCR SUBSET")
+          draw.lines = F,disp.min = -1,disp.max=1) + scale_fill_viridis_c() +ggtitle("CD4 TH2 TCR SUBSET")
 
 
 
@@ -240,5 +240,15 @@ cd8tex1.tcr.heat + cd8teff2.tcr.heat + cd8teff3.tcr.heat
 
 DoHeatmap(cd8tem2.avg, features=tcr.subset.markers.top15$gene, size = 6, 
 draw.lines = F) + scale_fill_viridis_c()
+
+dittoHeatmap(cd8tem2.avg, c("GZMA","GZMH","GZMB","GZMK","PRF1","GNLY","KLRG1",
+                            "KLRD1","IFNG","IL7R","SELL","CD27","CD28","CD69","FOS","JUN",
+                            "PDCD1","EOMES","TIGIT","CD244","LAG3","CTLA4",'HAVCR2','TBX21',"CD40LG","ITGAL","CD2","IL2RA"
+),
+            
+             scaled.to.max = T,
+             show_colnames = T,
+             show_rownames = T) 
+
 
 

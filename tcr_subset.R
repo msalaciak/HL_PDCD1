@@ -287,6 +287,9 @@ scale_color_manual(labels = c("unselected","TCR_7747","TCR_4087","TCR_1068","TCR
  Idents(tcr.subset.int) <-"seurat_clusters"
  Idents(tcr.subset.int) <-"celltype.cond"
  Idents(object = tcr.subset.int) <- "new.ident.tcr"
+ Idents(object = tcr.subset.int) <- "Timepoint"
+ Idents(object = tcr.subset.int) <- "Disease_status"
+ 
  
  new.idents.subset <- c('CD4 TH2', "CD4 NAIVE","CD8 TEFF-3 ","CD8 TEFF-2","CD8 TEM-2","CD8 TEFF-1","CD4 TREG","CD4 TH17","CD8 TEFF-2","CD8 TEM-3","CD8 TEX-1")
  
@@ -315,10 +318,14 @@ EnhancedVolcano(tcr.subset.cluster5.tp4v1,
 
 
 #### TCR DIVERISTY
+tcr.div <- data.frame(clonotype= tcr.subset.int$clonotype,ID=tcr.subset.int$new.ident.tcr,Timepoint=tcr.subset.int$Timepoint)
+
 tcr.diversity
-tcr.div.count <- tcr.diversity %>%                              # Applying group_by & summarise
-   group_by(ID,Timepoint) %>%
+tcr.div.count.id <- tcr.div %>%                              # Applying group_by & summarise
+   group_by(ID) %>%
    summarise(count = n_distinct(clonotype))
 
 tcr.div.clonotype <- tcr.diversity  %>% group_by(ID, Timepoint,clonotype)
 tcr.div.clonotype <- tcr.div.clonotype %>% tally()
+
+

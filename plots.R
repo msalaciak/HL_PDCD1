@@ -349,7 +349,7 @@ cell.count.names$Type <-"Cell Count"
 cell.count.tcr.names$Type <-"TCR Count"
 cell.count.tcr <-rbind(cell.count.tcr.names,cell.count.names)
 
-tp.df <- data.frame(Timepoint=c(1,4), Color=c("Pre ICI","Relapse Post ICI"))
+tp.df <- data.frame(Timepoint=c(1,2,3,4), Color=c("Pre ICI",'Remission IRAE','Remission',"Relapse Post ICI"))
 
 ggplot(cell.count.tcr, aes(x=Timepoint, y=Freq,color=Type))+
   geom_point()+geom_line()  +
@@ -432,7 +432,7 @@ correlation
 # features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1","FATTY_ACID_METABOLISM1"))
 
 VlnPlot(subset(tcr.subset.int,idents=c("5_tp_1","5_tp_4")), features = "GLYCOLYSIS1",y.max = .1) + RotatedAxis() + 
-  stat_compare_means(comparisons = list(c("5_tp_1","5_tp_4")), label = "p.signif", method = "t.test")
+  stat_compare_means(comparisons = list(c("5_tp_1","5_tp_4")), label = "p.signif", method = "wilcox.test")
 
 RidgePlot(subset(tcr.subset.int,idents=c("5_tp_4","5_tp_1")),features="CD69")
 
@@ -472,7 +472,7 @@ data.plot <- melt(data.plot)
 data.plot <- filter(data.plot, gene==c("PDCD1","GZMB"))
 
 ggplot(data.plot,
-       aes(x = gene, y = value)) +
+       aes(x = variable, y = value)) +
   geom_violin() +
   geom_jitter(size = 0.1) +  
   stat_compare_means(comparisons = list(c("PDCD1","GZMB")),label = "p.format", method = "t.test")
@@ -493,6 +493,25 @@ VlnPlot(subset(tcell.subset.int,idents=c("CD8 TEM-2_1","CD8 TEM-2_2","CD8 TEM-2_
                                        "CD8 TEM-2_6")), 
         features=c("MTOR1","PI3K_AKT_MTOR1","OXIDATIVE_PHOSPHORYLATION1","GLYCOLYSIS1"),ncol=2)
 
-VlnPlot(subset(tcr.subset.int,idents=c("5_tp_1","5_tp_6")), 
-        features=c("MTOR1"),y.max = .15) + 
-  stat_compare_means(comparisons = list(c("5_tp_1","5_tp_6")),label = "p.format", method = "t.test")
+VlnPlot(subset(tcr.subset.int,idents=c("Remission","Relapse")), 
+        features=c("TCF7"),y.max = 7) + 
+  stat_compare_means(comparisons = list(c("Remission","Relapse")),label = "p.signif", method = "wilcox.test")
+
+
+
+ggplot(data=tcr.div.count.id, aes(x=ID, y=count,fill=ID)) +
+  geom_bar(stat="identity") +ggtitle("Unique Clones Within T Cell Clusters") + theme_classic()  + scale_fill_viridis_d() +
+  geom_text(aes(label=count), position=position_dodge(width=0.9), vjust=-0.9)
+
+ggplot(data=tcr.div.count.tp, aes(x=Timepoint, y=count,fill=Timepoint)) +
+  geom_bar(stat="identity") +ggtitle("Unique Clones Within Timepoint Samples") + theme_classic()  + scale_fill_viridis_d() + geom_text(aes(label=count), position=position_dodge(width=0.9), vjust=-0.9)
+
+ggplot(data=tcr.div.count.tp.id, aes(x=ID, y=count,fill=Timepoint)) +
+  geom_bar(stat="identity",position=position_dodge()) +ggtitle("Unique Clones Within T Cell Clusters Within Timepoint Samples") + 
+  theme_classic() + scale_fill_viridis_d() + geom_text(aes(label=count), position=position_dodge(width=0.9), vjust=-0.9)
+
+data.plot <- melt(cd4cd8)
+
+ggplot(data.plot, aes(x=variable,y=value,group = Tcell,color=Tcell)) +
+  geom_point()+geom_line() + labs(y= "Cell Count", x = "Time Point") + ggtitle("CD4 and CD8 Cell Population Across Samples") +
+  geom_vline(data = tp.df, aes(xintercept = Timepoint, color =Color),size=.5,linetype=2)

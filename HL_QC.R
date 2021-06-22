@@ -29,6 +29,8 @@ library(org.Hs.eg.db)
 library(AnnotationDbi)
 library(scran)
 library(ggpubr)
+library(dittoSeq)
+library(escape)
 
 
 
@@ -1294,6 +1296,7 @@ mono.subset.int.markers <- FindAllMarkers(mono.subset.int, only.pos = TRUE,
 top10.mono.rna <- mono.subset.int.markers %>% 
   group_by(cluster) %>% 
   slice_max(avg_log2FC, n = 10)
+
 
 
 
